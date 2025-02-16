@@ -12,5 +12,13 @@ class Company extends Model
         'name',
         'admin_id'
     ];
+    public function admin_user()
+    {
 
+        return $this->hasMany(CompanyUserRole::class, 'company_id');
+    }
+    public function companyRoles()
+    {
+        return $this->hasMany(CompanyRole::class, 'company_id');
+    }
 }

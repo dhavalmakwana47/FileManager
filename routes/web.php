@@ -4,6 +4,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyRoleController;
 use App\Http\Controllers\CompanyRolePermissionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FolderController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +42,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('permission', CompanyRolePermissionController::class);
     Route::post('change-permission', [CompanyRolePermissionController::class, 'change_permission'])->name('role_permission.change_permission');
 
+    //folder
+    Route::resource('folder', FolderController::class);
 });
 
 require __DIR__ . '/auth.php';

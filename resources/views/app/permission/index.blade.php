@@ -88,7 +88,6 @@
                                                 </div>
                                             </td>
                                         @endforeach
-
                                     </tr>
                                 @endforeach
                             @endforeach

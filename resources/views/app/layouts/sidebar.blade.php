@@ -11,8 +11,12 @@
     <div class="sidebar-wrapper">
         <nav class="mt-2">
             <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
+
                 <x-nav-item route="{{ route('dashboard') }}" activeRoute="home" icon="bi bi-speedometer"
                     text="Dashboard" module="Dashboard" permission="view" />
+
+                <x-nav-item route="{{ route('folder.index') }}" activeRoute="folder.index" icon="bi bi-folder-fill"
+                    text="Folders" module="Folder" permission="view" />
 
                 <x-nav-item route="{{ route('users.index') }}" activeRoute="users.index" icon="bi bi-people"
                     text="Users" module="Users" permission="view" />

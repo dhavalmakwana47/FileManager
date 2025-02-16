@@ -16,7 +16,24 @@ class PermissionCheck
     public function handle(Request $request, Closure $next, $module, $permission): Response
     {
         $user = auth()->user();
-        if ($user->hasPermission( $module, $permission)) {
+        // List of routes to exclude from the check
+
+        $excludedRoutes = [
+            'company.index',
+            'company.create',
+            'company.update',
+            'company.store',
+            'company.show',
+            'company.destroy',
+            'company.edit'
+        ];
+
+        // Check if the current route is in the excluded list
+        if (!in_array($request->route()->getName(), $excludedRoutes) && !get_active_company() && !$user->is_master_admin()) {
+            return redirect()->route('accessdenied');
+        }
+
+        if ($user->hasPermission($module, $permission)) {
             return $next($request);
         }
         return redirect()->route('accessdenied');

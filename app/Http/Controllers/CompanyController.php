@@ -36,6 +36,21 @@ class CompanyController extends Controller implements HasMiddleware
         if (request()->ajax()) {
             $companyArr = Company::select(['id', 'name', 'created_at']);
             return DataTables::of($companyArr)
+                ->addColumn('admin', function ($company) {
+                    $emails = $company
+                        ->companyRoles()
+                        ->where('role_name', 'Super Admin')
+                        ->with('users')
+                        ->get()
+                        ->pluck('users') // Extract users collection
+                        ->flatten() // Flatten nested collections
+                        ->map(function ($user) {
+                            return "<li><b>{$user->name}</b> (<i>{$user->email}</i>)</li>"; // Format name and email as a list item
+                        })
+                        ->implode(''); // Join list items without separators
+
+                    return "<ul style='padding-left: 15px;'>{$emails}</ul>"; // Wrap in an unordered list
+                })
                 ->addColumn('action', function ($company) {
                     $editUrl = route('company.edit', $company->id);
                     $deleteUrl = route('company.destroy', $company->id); // Assuming 'company.destroy' is the delete route
@@ -51,6 +66,8 @@ class CompanyController extends Controller implements HasMiddleware
                     </form>
                 ';
                 })
+                ->rawColumns(['admin', 'action']) // Allow HTML in these columns
+
                 ->make(true);
         }
 

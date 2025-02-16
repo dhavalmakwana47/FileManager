@@ -29,24 +29,24 @@ class UserRequest extends FormRequest
             'user_email' => [
                 'required',
                 'email',
-                $user 
+                $user
                     ? Rule::unique('users', 'email')
-                        ->ignore($user) // Ignore this user's own email when updating
-                        ->where(function ($query) use ($activeCompany) {
-                            $query->whereIn('id', function ($subQuery) use ($activeCompany) {
-                                $subQuery->select('user_id')
-                                    ->from('company_users')
-                                    ->where('company_id', $activeCompany);
-                            });
-                        })
+                    ->ignore($user) // Ignore this user's own email when updating
+                    ->where(function ($query) use ($activeCompany) {
+                        $query->whereIn('id', function ($subQuery) use ($activeCompany) {
+                            $subQuery->select('user_id')
+                                ->from('company_users')
+                                ->where('company_id', $activeCompany);
+                        });
+                    })
                     : Rule::unique('users', 'email')
-                        ->where(function ($query) use ($activeCompany) {
-                            $query->whereIn('id', function ($subQuery) use ($activeCompany) {
-                                $subQuery->select('user_id')
-                                    ->from('company_users')
-                                    ->where('company_id', $activeCompany);
-                            });
-                        }),
+                    ->where(function ($query) use ($activeCompany) {
+                        $query->whereIn('id', function ($subQuery) use ($activeCompany) {
+                            $subQuery->select('user_id')
+                                ->from('company_users')
+                                ->where('company_id', $activeCompany);
+                        });
+                    }),
             ],
             'password' => [
                 $user ? 'nullable' : 'required',
@@ -55,7 +55,11 @@ class UserRequest extends FormRequest
             ],
             'role' => [
                 'required',
-                Rule::exists('company_roles', 'id')->where('company_id', $activeCompany),
+                Rule::exists('company_roles', 'id')
+                    ->where(function ($query) use ($activeCompany) {
+                        $query->where('role_name', '!=', 'Super Admin')
+                            ->where('company_id', $activeCompany);
+                    }),
             ],
         ];
     }

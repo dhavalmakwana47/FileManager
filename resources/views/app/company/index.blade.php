@@ -27,16 +27,13 @@
                     </a>
                 </div>
             </div>
-            <x-data-table 
-                id="company-table" 
-                :columns="[
-                    ['data' => 'id', 'title' => 'ID'],
-                    ['data' => 'name', 'title' => 'Name'],
-                    ['data' => 'created_at', 'title' => 'Created At'],
-                    ['data' => 'action', 'title' => 'Action', 'orderable' => false, 'searchable' => false]
-                ]" 
-                :extraOptions="['title' => 'Company List']"
-            />
+            <x-data-table id="company-table" :columns="[
+                ['data' => 'id', 'title' => 'ID'],
+                ['data' => 'name', 'title' => 'Name'],
+                ['data' => 'admin', 'title' => 'Admin Users'],
+                ['data' => 'created_at', 'title' => 'Created At'],
+                ['data' => 'action', 'title' => 'Action', 'orderable' => false, 'searchable' => false],
+            ]" :extraOptions="['title' => 'Company List']" />
         </div>
     </div>
 @endsection
@@ -56,6 +53,10 @@
                 {
                     data: 'name',
                     name: 'name'
+                },
+                {
+                    data: 'admin',
+                    name: 'admin'
                 },
                 {
                     data: 'created_at',

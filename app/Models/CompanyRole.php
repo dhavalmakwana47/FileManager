@@ -33,4 +33,5 @@ class CompanyRole extends Model
         $name = str_replace('_', ' ', $this->role_name);
         return ucwords($name);
     }
+
 }

@@ -95,6 +95,34 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'name' => 'View',
+                'slug' => 'view',
+                'module_name' => 'Folder',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Create',
+                'slug' => 'create',
+                'module_name' => 'Folder',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Update',
+                'slug' => 'update',
+                'module_name' => 'Folder',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Delete',
+                'slug' => 'delete',
+                'module_name' => 'Folder',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
 
         $user = User::create([
