@@ -32,7 +32,7 @@ class FolderController extends Controller implements HasMiddleware
         $data['folderArr'] = Folder::where('company_id', get_active_company())->where('parent_id', null)->get();
         $data['allFolderArr'] = Folder::where('company_id', get_active_company())->get();
         $data['roleArr'] = CompanyRole::whereNot('role_name', 'Super Admin')->where('company_id', get_active_company())->get();
-        return view('app.folder.index', $data);
+        return view('app.folder.index2', $data);
     }
 
     /**

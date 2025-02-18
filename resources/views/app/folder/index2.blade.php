@@ -4,7 +4,7 @@
     <link rel="stylesheet" href="{{ asset('select2.min.css') }}">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="{{ asset('app/css/files.css') }}">
+    <link rel="stylesheet" href="{{ asset('app/css/folders.css') }}">
 @endpush
 
 @section('content')
@@ -12,110 +12,68 @@
 
     <div class="app-content">
         <div class="container-fluid">
-
-            <!-- Modal for Folder Creation -->
-            <div class="modal fade " id="createFolderModal" tabindex="-1" aria-labelledby="createFolderModalLabel"
-                aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <form id="createFolderForm">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="createFolderModalLabel">Create New Folder</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="form-group mb-3">
-                                    <label for="folderName">Folder Name</label>
-                                    <input type="text" id="newfolderName" name="name" class="form-control" required>
-                                </div>
-                                <div class="form-group mb-3">
-                                    <label for="role">Grant Access to Role</label>
-                                    <select name="role[]" id="role-select" class="select2" multiple="multiple"
-                                        style="width: 100%;">
-                                        @foreach ($roleArr as $role)
-                                            <option value="{{ $role->id }}">{{ $role->role_name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <div class="form-group mb-3">
-                                    <label for="parentFolder">Parent Folder</label>
-                                    <select id="parentFolder" name="parent_id" class="form-select">
-                                        <option value="">None (Root Folder)</option>
-                                        @foreach ($allFolderArr as $folder)
-                                            <option value="{{ $folder->id }}">{{ $folder->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Create</button>
-                            </div>
-                        </form>
-                    </div>
+            <div class="cm-address-bar-search" clear>
+                <div class="address-search">
+                    <div class="pos"><input type="text" class="address-search-input"><div class="cm-button address-button"><i class="fas fa-arrow-right"></i></div><div class="address-short-btn"></div></div>
+                </div>
+                <div class="search-file-and-folder">
+                    <div class="pos"><input placeholder="Search.." type="text" class="files-search-input"><div class="cm-button file-search-button"><i class="fas fa-search"></i></div></div>
                 </div>
             </div>
-
-
-            <!-- Folder Tree View -->
-            <div class="tree">
+            <div class="theme-structure big-file-manager">
                 <ul>
-                    <li>
-                        <details>
-
-                            <summary>
-                                <i class="fa fa-folder"></i>Main
-                                @if (current_user()->hasPermission('Folder', 'create'))
-                                    <button class="btn btn-primary" onclick="create_folder_form()" style="margin-left: 0px;">Create Folder
-                                    </button>
-                                @endif
-
-                            </summary>
-                            <ul>
-                                @foreach ($folderArr as $folder)
-                                    <x-folder :folder="$folder" />
-                                @endforeach
-                            </ul>
-                        </details>
+                    <li class="file-sub-active show-up"><b>Project 01</b></li>
+                    <li data-file-icon="folder"><b>Assets</b>
+                        <ul>
+                            <li data-file-icon="folder"><b>image</b>
+                                <ul>
+                                    <li data-file-id="sdfsdfsdfsdf45456sd" data-file-icon="video"><b>movie.mp4</b></li>
+                                    <li data-file-id="sdfsdfsdf454" data-file-icon="image"><b>cat.png</b></li>
+                                    <li data-file-id="sdf4334545" data-file-icon="image"><b>banner.jpg</b></li>
+                                    <li data-file-id="sdfs4355" data-file-icon="image"><b>user.gif</b></li>
+                                </ul>
+                            </li>
+                            <li data-file-icon="folder"><b>fonts</b>
+                                <ul>
+                                    <li data-file-icon="folder"><b>A-1</b></li>
+                                    <li data-file-icon="folder"><b>B-1</b></li>
+                                    <li data-file-icon="folder"><b>C-1</b>
+                                        <ul>
+                                            <li data-file-icon="folder"><b>A-2</b></li>
+                                            <li data-file-icon="folder"><b>B-2</b></li>
+                                            <li data-file-icon="folder"><b>C-2</b>
+                                                <ul>
+                                                    <li data-file-icon="folder"><b>A-3</b></li>
+                                                    <li data-file-icon="folder"><b>B-3</b></li>
+                                                    <li data-file-icon="folder"><b>C-3</b></li>
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li data-file-icon="folder"><b>files</b></li>
+                            <li data-file-icon="folder"><b>random</b></li>
+                        </ul>
                     </li>
+                    <li data-file-icon="folder"><b>Pages</b>
+                        <ul>
+                            <li data-file-id="5" data-file-icon="html"><b>main.html</b></li>
+                            <li data-file-id="6" data-file-icon="php"><b>error.php</b></li>
+                            <li data-file-id="7" data-file-icon="css"><b>serach-result.css</b></li>
+                            <li data-file-id="8" data-file-icon="js"><b>extra.js</b></li>
+                        </ul>
+                    </li>
+                    <li data-file-icon="folder"><b>Layout</b>
+                        <ul>
+                            <li data-file-icon="layout"><b>Two Column Left Image</b></li>
+                            <li data-file-icon="layout"><b>Three Column Equal</b></li>
+                            <li data-file-icon="layout"><b>Two Column</b></li>
+                            <li data-file-icon="layout"><b>Full Width</b></li>
+                        </ul>
+                    </li>
+                    <li data-file-icon="folder"><b>File 04</b></li>
                 </ul>
-            </div>
-
-            <!-- Create/Edit Folder Modal -->
-            <div class="modal fade" id="folderModal" tabindex="-1" aria-labelledby="folderModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <form id="folderForm" action="">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="folderModalLabel">Create/Edit Folder</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
-                            </div>
-
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <label for="folderName" class="form-label">Folder Name</label>
-                                    <input type="text" class="form-control" id="folderName" name="name" required>
-                                </div>
-                                <div class="form-group mb-3">
-                                    <label for="role">Grant Access to Role</label>
-                                    <select name="role[]" id="role-select-edit" class="select2" multiple="multiple"
-                                        style="width: 100%;">
-                                        @foreach ($roleArr as $role)
-                                            <option value="{{ $role->id }}">{{ $role->role_name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="modal-footer">
-                                <button type="submit" class="btn btn-primary">Save</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
             </div>
 
         </div>
@@ -124,6 +82,7 @@
 
 @push('scripts')
     <script src="{{ asset('select2.full.min.js') }}"></script>
+    <script src="{{ asset('app/js/folders.js') }}"></script>
 
     <script>
         $('#role-select').select2({
