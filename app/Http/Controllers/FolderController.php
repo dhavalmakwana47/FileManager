@@ -222,4 +222,40 @@ class FolderController extends Controller implements HasMiddleware
             ], 500);
         }
     }
+
+    public function fileManager()
+    {
+        $folders = Folder::where('company_id', get_active_company())
+            ->whereNull('parent_id')
+            ->with('subfolders') // Eager load subfolders
+            ->get();
+
+        $fileManager = $this->buildFileTree($folders);
+
+        return response()->json($fileManager);
+    }
+
+    /**
+     * Recursive function to build folder structure
+     */
+    private function buildFileTree($folders)
+    {
+        $tree = [];
+
+        foreach ($folders as $folder) {
+            $node = [
+                'id' => $folder->id,  // Unique ID required for frontend
+                'parentId' => $folder->parent_id, // Reference to the parent
+                'name' => $folder->name,
+                'isDirectory' => true, // Required for folders
+                "permissions" => ["delete" => (bool)rand(0, 1)], // ✅ Random true/false
+                'items' => $folder->subfolders->isNotEmpty()
+                    ? $this->buildFileTree($folder->subfolders)
+                    : []
+            ];
+            $tree[] = $node;
+        }
+
+        return $tree;
+    }
 }

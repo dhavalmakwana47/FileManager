@@ -141,7 +141,6 @@
         function create_folder_form(id) {
             $('#createFolderForm')[0].reset();
             $('#role-select').change();
-            $('#parentFolder').val(id)
             $('#createFolderModal').modal('show');
         }
 
