@@ -2,7 +2,7 @@
 
     <div class="sidebar-brand">
         <a href="{{ route('home') }}" class="brand-link">
-            <img src="{{ asset('app/assets/img/AdminLTELogo.png') }}" alt="AdminLTE Logo"
+            <img src="{{ asset('repository.png') }}" alt="AdminLTE Logo"
                 class="brand-image opacity-75 shadow">
             <span class="brand-text fw-light">File Manager</span>
         </a>

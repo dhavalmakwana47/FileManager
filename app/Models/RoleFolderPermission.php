@@ -10,6 +10,7 @@ class RoleFolderPermission extends Model
     use HasFactory;
     protected $fillable = [
         'company_role_id',
-        'folder_id'
+        'folder_id',
+        'can_create'
     ];
 }

@@ -1,10 +1,8 @@
 
 
 $(function () {
-  const headers = {
-    "Content-Type": "application/json",
-    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
-  };
+  const csrfToken = $('meta[name="csrf-token"]').attr('content');
+
 
   const fileManager = $("#file-manager").dxFileManager({
     name: "fileManager",
@@ -94,6 +92,13 @@ $(function () {
     onItemContextMenu: function (e) {
       let selectedItems = e.selectedItems;
       console.log(selectedItems);
+    },
+    onCurrentDirectoryChanged: function (e) {
+      createPermission = createFolderPermission;
+      if (e.directory.dataItem !== undefined) {
+        createPermission = e.directory.dataItem.permissions.create
+      }
+      fileManager.option("toolbar.items[2].visible", createPermission)
     }
   }).dxFileManager("instance");
 
@@ -102,15 +107,13 @@ $(function () {
 
     let selectedItem = fileManager.getSelectedItems()[0]; // Get the selected item
     $('#folderModalLabel').text('Rename Folder');
-    let updateUrl = createFolderRoute + "/" + selectedItem.dataItem.id;
+    let updateUrl = createFolderRoute + "/" + selectedItem.dataItem.id + "/edit";
     $.ajax({
       url: updateUrl,
       type: 'GET',
 
       success: function (response) {
-        $('#role-select-edit').val(response.roles).change()
-        $('#folderName').val(response.name);
-
+        $('#folderForm').html(response)
         $('#folderModal').modal('show');
       },
       error: function (xhr) {
@@ -130,8 +133,7 @@ $(function () {
       type: 'PUT',
       data: $(this).serialize(),
       headers: {
-        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr(
-          'content') // Include CSRF token
+        "X-CSRF-TOKEN": csrfToken // ✅ CSRF token included
       },
       success: function (response) {
         if (response.success) {
@@ -204,7 +206,6 @@ $(function () {
   $('#createFolderForm').on('submit', function (e) {
     e.preventDefault();
 
-    const csrfToken = $('meta[name="csrf-token"]').attr('content');
     const currentDir = fileManager.getCurrentDirectory();
     const parentId = currentDir.dataItem?.id || "";
 
@@ -229,7 +230,7 @@ $(function () {
         }
       },
       error: function (xhr, status, error) {
-        console.error("Error:", xhr.responseText); // Log error response
+        console.error("Error:", error); // Log error response
         alert("An unexpected error occurred. Please try again.");
       }
     });

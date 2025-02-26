@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Folder\FolderRequest;
 use App\Models\CompanyRole;
 use App\Models\Folder;
 use App\Models\RoleFolderPermission;
@@ -11,313 +12,228 @@ use Illuminate\Routing\Controllers\Middleware;
 
 class FolderController extends Controller implements HasMiddleware
 {
-
     public static function middleware(): array
     {
         return [
             new Middleware('permission_check:Folder,view', only: ['index', 'show']),
             new Middleware('permission_check:Folder,create', only: ['create', 'store']),
             new Middleware('permission_check:Folder,update', only: ['edit', 'update']),
-            new Middleware('permission_check:Folder,delete', only: ['destroy']),
+            new Middleware('permission_check:Folder,delete', only: ['destroy', 'deleteFolder']),
         ];
     }
 
     /**
-     * Display a listing of the resource.
+     * Display a listing of folders.
      */
     public function index()
     {
-
-        $data = [];
-        $data['folderArr'] = Folder::where('company_id', get_active_company())->where('parent_id', null)->get();
-        $data['allFolderArr'] = Folder::where('company_id', get_active_company())->get();
-        $data['roleArr'] = CompanyRole::whereNot('role_name', 'Super Admin')->where('company_id', get_active_company())->get();
-        return view('app.folder.index2', $data);
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        // Fetch the active company ID using get_active_company()
-        $company_id = get_active_company();
-
-        // Check if the active company ID is valid
-        if (!$company_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Active company not found.',
-            ], 400); // 400 Bad Request status code
-        }
-
-        // Validate the incoming request (only validating name and parent_id)
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'parent_id' => 'nullable|exists:folders,id', // Assuming parent_id refers to a valid folder
-            'role' => [
-                'nullable',
-                'array',
-                function ($attribute, $value, $fail) {
-                    $invalidIds = array_filter($value, function ($roleId) {
-                        return !CompanyRole::where('id', $roleId)->exists();
-                    });
-
-                    if (!empty($invalidIds)) {
-                        $fail('The following role IDs are invalid: ' . implode(', ', $invalidIds));
-                    }
-                },
-            ],
+        return view('app.folder.index2', [
+            'title' => "Add Folder",
+            'assignedPermissions' => [],
+            'folderArr' => Folder::where('company_id', get_active_company())->whereNull('parent_id')->get(),
+            'allFolderArr' => Folder::where('company_id', get_active_company())->get(),
+            'roleArr' => CompanyRole::whereNot('role_name', 'Super Admin')->where('company_id', get_active_company())->get(),
         ]);
+    }
+
+    /**
+     * Store a new folder.
+     */
+    public function store(FolderRequest $request)
+    {
+        $company_id = get_active_company();
+        if (!$company_id) {
+            return $this->errorResponse('Active company not found.', 400);
+        }
 
         try {
-            // Create the folder with the validated data
             $folder = Folder::create([
-                'name' => $validated['name'],
-                'parent_id' => $validated['parent_id'] ?? null, // Ensure parent_id is nullable
-                'company_id' => $company_id, // Use the active company ID,
+                'name' => $request['name'],
+                'parent_id' => $request['parent_id'] ?? null,
+                'company_id' => $company_id,
                 'created_by' => current_user()->id
-
             ]);
 
-            $roleIds = $request->role ?? []; // Use an empty array if no roles are provided
+            $this->syncPermissions($folder->id, $request->input('permissions', []));
 
-            foreach ($roleIds as $roleId) {
-                RoleFolderPermission::create([
-                    'company_role_id' => $roleId,
-                    'folder_id' => $folder->id,
-                ]);
-            }
-
-            // Return a success response
-            return response()->json([
-                'success' => true,
-                'message' => 'Folder created successfully!',
-                'data' => $folder // Optionally, return the created folder data
-            ], 200); // 201 Created status code
-
+            return $this->successResponse('Folder created successfully!', $folder);
         } catch (\Exception $e) {
-            // Log the exception
-            \Log::error('Folder creation failed: ' . $e->getMessage());
-
-            // Return an error response
-            return response()->json([
-                'success' => false,
-                'message' => 'There was an error creating the folder.',
-                'error' => $e->getMessage() // Optionally, include the error message
-            ], 500); // 500 Internal Server Error
+            return $this->errorResponse('There was an error creating the folder.', 500, $e);
         }
     }
 
-
-
-
-
     /**
-     * Display the specified resource.
-     */
-    public function show(Folder $folder)
-    {
-        $folder->roles = $folder->access_to_role->pluck('company_role_id');
-        return response()->json($folder);
-    }
-
-    /**
-     * Show the form for editing the specified resource.
+     * Show edit form for a folder.
      */
     public function edit(Folder $folder)
     {
-        //
-    }
-    public function update(Request $request, $id)
-    {
-        // Find the folder
-        $folder = Folder::findOrFail($id);
-
-        // Validate the input
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'role' => [
-                'nullable',
-                'array',
-                function ($attribute, $value, $fail) {
-                    $invalidIds = array_filter($value, function ($roleId) {
-                        return !CompanyRole::where('id', $roleId)->exists();
-                    });
-
-                    if (!empty($invalidIds)) {
-                        $fail('The following role IDs are invalid: ' . implode(', ', $invalidIds));
-                    }
-                },
-            ],
+        return view('app.folder.update', [
+            'title' => "Edit Folder",
+            'assignedPermissions' => $this->getFolderPermissions($folder->id),
+            'roleArr' => CompanyRole::whereNot('role_name', 'Super Admin')->where('company_id', get_active_company())->get(),
+            'folder' => $folder
         ]);
+    }
 
-        // Update folder details
+    /**
+     * Update a folder.
+     */
+    public function update(FolderRequest $request, $id)
+    {
+        $folder = Folder::findOrFail($id);
         $folder->update([
-            'name' => $validated['name'],
+            'name' => $request->input('name'),
             'updated_by' => current_user()->id
         ]);
 
-        // Sync roles in RoleFolderPermission
-        $roleIds = $request->role ?? []; // Use an empty array if no roles are provided
+        $this->syncPermissions($id, $request->input('permissions', []));
 
-        // Get existing role permissions for this folder
-        $existingPermissions = RoleFolderPermission::where('folder_id', $id)
-            ->pluck('company_role_id')
-            ->toArray();
-
-        // Find roles to add
-        $rolesToAdd = array_diff($roleIds, $existingPermissions);
-
-        // Find roles to delete
-        $rolesToDelete = array_diff($existingPermissions, $roleIds);
-
-        // Delete old permissions
-        RoleFolderPermission::where('folder_id', $id)
-            ->whereIn('company_role_id', $rolesToDelete)
-            ->delete();
-
-        // Insert new permissions
-        foreach ($rolesToAdd as $roleId) {
-            RoleFolderPermission::create([
-                'company_role_id' => $roleId,
-                'folder_id' => $id,
-            ]);
-        }
-
-        // Return success response
-        return response()->json(['success' => true, 'message' => 'Folder updated successfully!', 'data' => $folder]);
+        return $this->successResponse('Folder updated successfully!', $folder);
     }
-
-
 
     /**
-     * Remove the specified resource from storage.
+     * Delete one or multiple folders.
      */
-    public function destroy($id)
-    {
-        try {
-            $folder = Folder::findOrFail($id);
-
-            // Ensure the folder is deleted
-            $folder->delete();
-
-            // Return success response
-            return response()->json([
-                'status' => 'success',
-                'success' => true,
-                'message' => 'Folder deleted successfully.'
-            ]);
-        } catch (\Exception $e) {
-            // Return error response if something goes wrong
-            return response()->json([
-                'status' => 'error',
-                'success' => true,
-
-                'message' => 'There was an error deleting the folder.'
-            ], 500);
-        }
-    }
-
     public function deleteFolder(Request $request)
     {
         try {
-            $folders = Folder::whereIn('id', $request->folder_ids);
-
-            // Ensure the folder is deleted
-            $folders->delete();
-
-            // Return success response
-            return response()->json([
-                'status' => 'success',
-                'success' => true,
-
-                'message' => 'Folder deleted successfully.'
-            ]);
+            Folder::whereIn('id', (array) $request->folder_ids)->delete();
+            return $this->successResponse('Folder deleted successfully.');
         } catch (\Exception $e) {
-            // Return error response if something goes wrong
-            return response()->json([
-                'status' => 'error',
-                'success' => false,
-                'message' => 'There was an error deleting the folder.'
-            ], 500);
+            return $this->errorResponse('There was an error deleting the folder.', 500, $e);
         }
     }
 
+    /**
+     * Get the folder structure for file manager.
+     */
     public function fileManager()
     {
+        $defaultAccess = current_user()->is_master_admin() || current_user()->is_super_admin();
+
         $folders = Folder::where('company_id', get_active_company())
             ->whereNull('parent_id')
-            ->with(['subfolders']) // Load subfolders & files
+            ->with(['subfolders', 'files'])
             ->get();
-    
-        $fileManager = $this->buildFileTree($folders);
-    
-        return response()->json($fileManager);
+
+        return response()->json($this->buildFileTree($folders, $defaultAccess));
     }
-    
+
     /**
-     * Recursive function to build folder structure ensuring children with access are included
+     * Recursively build folder structure with permissions.
      */
-    private function buildFileTree($folders)
+    private function buildFileTree($folders, $defaultAccess)
     {
-        $tree = [];
-    
-        foreach ($folders as $folder) {
-            // Check if folder or any child has access
-            if ($folder->has_access() || $this->hasChildAccess($folder)) {
-                $node = [
-                    'id' => $folder->id,
-                    'parentId' => $folder->parent_id,
-                    'name' => $folder->name,
-                    'isDirectory' => true,
-                    "permissions" => ["delete" => true], // ✅ Random true/false
-                    'items' => $this->buildFileTree($folder->subfolders)
-                    // 'files' => $this->getPermittedFiles($folder) // Fetch permitted files
-                ];
-    
-                $tree[] = $node;
-            }
-        }
-    
-        return $tree;
+        return $folders->filter(fn($folder) => $folder->has_access() || $this->hasChildAccess($folder))
+            ->map(fn($folder) => [
+                'id' => $folder->id,
+                'parentId' => $folder->parent_id,
+                'name' => $folder->name,
+                'isDirectory' => true,
+                'permissions' => $this->formatPermissions($folder, $defaultAccess),
+                'items' => array_merge(
+                    $this->buildFileTree($folder->subfolders, $defaultAccess),
+                    $this->getPermittedFiles($folder, $defaultAccess)
+                ),
+            ])
+            ->values()
+            ->all();
     }
-    
+
     /**
-     * Check if any child folder has access
+     * Check if any child folder has access.
      */
     private function hasChildAccess($folder)
     {
-        foreach ($folder->subfolders as $subfolder) {
-            if ($subfolder->has_access() || $this->hasChildAccess($subfolder)) {
-                return true;
-            }
-        }
-        return false;
+        return $folder->subfolders->contains(fn($sub) => $sub->has_access() || $this->hasChildAccess($sub));
     }
-    
+
     /**
-     * Get files with access in a given folder
+     * Get files with access in a given folder.
      */
-    private function getPermittedFiles($folder)
+    private function getPermittedFiles($folder, $defaultAccess)
     {
-        return $folder->files->filter(function ($file) {
-            return $file->has_access(); // Ensure only accessible files are included
-        })->map(function ($file) {
-            return [
+        return $folder->files->filter(fn($file) => $file->hasAccess())
+            ->map(fn($file) => [
                 'id' => $file->id,
                 'name' => $file->name,
                 'isDirectory' => false,
-                "permissions" => ["delete" => true] // ✅ Example permission
-            ];
-        })->values();
+                'permissions' => $this->formatPermissions($file, $defaultAccess),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Format permissions with default values.
+     */
+    private function formatPermissions($model, $defaultAccess)
+    {
+        $permissions = $model->getPermissions();
+        return [
+            'create' => $permissions->can_create ?? $defaultAccess,
+            'update' => $permissions->can_update ?? $defaultAccess,
+            'delete' => $permissions->can_delete ?? $defaultAccess,
+        ];
+    }
+
+    /**
+     * Get assigned folder permissions.
+     */
+    private function getFolderPermissions($folderId)
+    {
+        return RoleFolderPermission::where('folder_id', $folderId)
+            ->get()
+            ->groupBy('company_role_id')
+            ->map(fn($permissions) => [
+                'can_view' => $permissions->contains('can_view', true),
+                'can_create' => $permissions->contains('can_create', true),
+                'can_update' => $permissions->contains('can_update', true),
+                'can_delete' => $permissions->contains('can_delete', true),
+            ])
+            ->toArray();
+    }
+
+    /**
+     * Sync folder permissions.
+     */
+    private function syncPermissions($folderId, array $permissions)
+    {
+        RoleFolderPermission::where('folder_id', $folderId)->delete();
+
+        $rolePermissions = collect($permissions)
+            ->map(fn($permissionArray, $roleId) => [
+                'company_role_id' => $roleId,
+                'folder_id' => $folderId,
+                'can_view' => in_array('can_view', $permissionArray),
+                'can_create' => in_array('can_create', $permissionArray),
+                'can_update' => in_array('can_update', $permissionArray),
+                'can_delete' => in_array('can_delete', $permissionArray),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ])
+            ->values()
+            ->all();
+
+        if (!empty($rolePermissions)) {
+            RoleFolderPermission::insert($rolePermissions);
+        }
+    }
+
+    /**
+     * Standardized success response.
+     */
+    private function successResponse($message, $data = null)
+    {
+        return response()->json(['success' => true, 'message' => $message, 'data' => $data]);
+    }
+
+    /**
+     * Standardized error response.
+     */
+    private function errorResponse($message, $code = 500, $exception = null)
+    {
+        \Log::error($message . ($exception ? ' - ' . $exception->getMessage() : ''));
+        return response()->json(['success' => false, 'message' => $message], $code);
     }
 }

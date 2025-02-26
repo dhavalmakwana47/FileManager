@@ -34,4 +34,21 @@ class Folder extends Model
         }
         return $this->access_to_role()->where('company_role_id', current_user()->companyRoles->pluck('id')->toArray())->exists();
     }
+
+    public function files()
+    {
+        return $this->hasMany(File::class);
+    }
+
+    public function rolePermissions()
+    {
+        return $this->hasMany(RoleFolderPermission::class, 'folder_id');
+    }
+
+    public function getPermissions()
+    {
+        return $this->rolePermissions()
+            ->whereIn('company_role_id', current_user()->companyRoles->pluck('id'))
+            ->first(['can_create', 'can_update', 'can_delete']);
+    }
 }
