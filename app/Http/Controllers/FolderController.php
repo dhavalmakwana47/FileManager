@@ -126,7 +126,8 @@ class FolderController extends Controller implements HasMiddleware
      */
     public function show(Folder $folder)
     {
-        return response()->json($folder->access_to_role->pluck('company_role_id'));
+        $folder->roles = $folder->access_to_role->pluck('company_role_id');
+        return response()->json($folder);
     }
 
     /**
@@ -212,12 +213,40 @@ class FolderController extends Controller implements HasMiddleware
             // Return success response
             return response()->json([
                 'status' => 'success',
+                'success' => true,
                 'message' => 'Folder deleted successfully.'
             ]);
         } catch (\Exception $e) {
             // Return error response if something goes wrong
             return response()->json([
                 'status' => 'error',
+                'success' => true,
+
+                'message' => 'There was an error deleting the folder.'
+            ], 500);
+        }
+    }
+
+    public function deleteFolder(Request $request)
+    {
+        try {
+            $folders = Folder::whereIn('id', $request->folder_ids);
+
+            // Ensure the folder is deleted
+            $folders->delete();
+
+            // Return success response
+            return response()->json([
+                'status' => 'success',
+                'success' => true,
+
+                'message' => 'Folder deleted successfully.'
+            ]);
+        } catch (\Exception $e) {
+            // Return error response if something goes wrong
+            return response()->json([
+                'status' => 'error',
+                'success' => false,
                 'message' => 'There was an error deleting the folder.'
             ], 500);
         }
@@ -227,35 +256,68 @@ class FolderController extends Controller implements HasMiddleware
     {
         $folders = Folder::where('company_id', get_active_company())
             ->whereNull('parent_id')
-            ->with('subfolders') // Eager load subfolders
+            ->with(['subfolders']) // Load subfolders & files
             ->get();
-
+    
         $fileManager = $this->buildFileTree($folders);
-
+    
         return response()->json($fileManager);
     }
-
+    
     /**
-     * Recursive function to build folder structure
+     * Recursive function to build folder structure ensuring children with access are included
      */
     private function buildFileTree($folders)
     {
         $tree = [];
-
+    
         foreach ($folders as $folder) {
-            $node = [
-                'id' => $folder->id,  // Unique ID required for frontend
-                'parentId' => $folder->parent_id, // Reference to the parent
-                'name' => $folder->name,
-                'isDirectory' => true, // Required for folders
-                "permissions" => ["delete" => (bool)rand(0, 1)], // ✅ Random true/false
-                'items' => $folder->subfolders->isNotEmpty()
-                    ? $this->buildFileTree($folder->subfolders)
-                    : []
-            ];
-            $tree[] = $node;
+            // Check if folder or any child has access
+            if ($folder->has_access() || $this->hasChildAccess($folder)) {
+                $node = [
+                    'id' => $folder->id,
+                    'parentId' => $folder->parent_id,
+                    'name' => $folder->name,
+                    'isDirectory' => true,
+                    "permissions" => ["delete" => true], // ✅ Random true/false
+                    'items' => $this->buildFileTree($folder->subfolders)
+                    // 'files' => $this->getPermittedFiles($folder) // Fetch permitted files
+                ];
+    
+                $tree[] = $node;
+            }
         }
-
+    
         return $tree;
+    }
+    
+    /**
+     * Check if any child folder has access
+     */
+    private function hasChildAccess($folder)
+    {
+        foreach ($folder->subfolders as $subfolder) {
+            if ($subfolder->has_access() || $this->hasChildAccess($subfolder)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Get files with access in a given folder
+     */
+    private function getPermittedFiles($folder)
+    {
+        return $folder->files->filter(function ($file) {
+            return $file->has_access(); // Ensure only accessible files are included
+        })->map(function ($file) {
+            return [
+                'id' => $file->id,
+                'name' => $file->name,
+                'isDirectory' => false,
+                "permissions" => ["delete" => true] // ✅ Example permission
+            ];
+        })->values();
     }
 }

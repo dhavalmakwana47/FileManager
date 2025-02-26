@@ -45,7 +45,7 @@ Route::middleware('auth')->group(function () {
     //folder
     Route::resource('folder', FolderController::class);
     Route::get('/getfiledata', [FolderController::class, 'fileManager'])->name('filemanger.data');
-
+    Route::post('/delete/folders', [FolderController::class, 'deleteFolder'])->name('folders.delete');
 });
 
 require __DIR__ . '/auth.php';
