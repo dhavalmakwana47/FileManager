@@ -4,6 +4,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyRoleController;
 use App\Http\Controllers\CompanyRolePermissionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
@@ -44,6 +45,8 @@ Route::middleware('auth')->group(function () {
 
     //folder
     Route::resource('folder', FolderController::class);
+    Route::resource('file', FileController::class);
+    
     Route::get('/getfiledata', [FolderController::class, 'fileManager'])->name('filemanger.data');
     Route::post('/delete/folders', [FolderController::class, 'deleteFolder'])->name('folders.delete');
 });

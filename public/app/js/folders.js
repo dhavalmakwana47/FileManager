@@ -39,7 +39,17 @@ $(function () {
     },
     toolbar: {
       items: [
-        { name: "upload", visible: true },
+        {
+          name: "upload-file",
+          options: {
+            text: "Upload file",
+            icon: "upload"
+          },
+          visible: createFolderPermission,
+          onClick: function () {
+            uploadFile();
+          }
+        },
         {
           name: "refresh-folder",
           options: {
@@ -85,9 +95,11 @@ $(function () {
     onSelectionChanged: function (e) {
       let selectedItems = e.selectedItems;
       let canDelete = selectedItems.length > 0 && selectedItems.every(item => item.dataItem.permissions && item.dataItem.permissions.delete && deleteFolderPermission);
+      let canUpdate = selectedItems.length > 0 && selectedItems.every(item => item.dataItem.permissions && item.dataItem.permissions.update && updateFolderPermission);
       fileManager.option("contextMenu.items[0].visible", selectedItems.length > 1 ? false : true)
       fileManager.option("toolbar.fileSelectionItems[0].visible", canDelete)
       fileManager.option("contextMenu.items[1].visible", canDelete)
+      fileManager.option("contextMenu.items[0].visible", canUpdate)
     },
     onItemContextMenu: function (e) {
       let selectedItems = e.selectedItems;
@@ -98,6 +110,7 @@ $(function () {
       if (e.directory.dataItem !== undefined) {
         createPermission = e.directory.dataItem.permissions.create
       }
+
       fileManager.option("toolbar.items[2].visible", createPermission)
     }
   }).dxFileManager("instance");
@@ -106,8 +119,8 @@ $(function () {
   function renameFolder(e) {
 
     let selectedItem = fileManager.getSelectedItems()[0]; // Get the selected item
-    $('#folderModalLabel').text('Rename Folder');
-    let updateUrl = createFolderRoute + "/" + selectedItem.dataItem.id + "/edit";
+    let updateUrl = (selectedItem.dataItem.isDirectory ? createFolderRoute : createFileRoute) + "/" + selectedItem.dataItem.id + "/edit";
+
     $.ajax({
       url: updateUrl,
       type: 'GET',
@@ -126,7 +139,7 @@ $(function () {
   $('#folderForm').on('submit', function (e) {
     e.preventDefault();
     let selectedItem = fileManager.getSelectedItems()[0]; // Get the selected item
-    let editUrl = createFolderRoute + "/" + selectedItem.dataItem.id;
+    let editUrl = (selectedItem.dataItem.isDirectory ? createFolderRoute : createFileRoute) + "/" + selectedItem.dataItem.id;
 
     $.ajax({
       url: editUrl,
@@ -197,9 +210,48 @@ $(function () {
   // ✅ Custom Function to Create a New Folder
   function createNewFolder() {
     $('#createFolderForm')[0].reset();
-    $('#role-select').change();
     $('#createFolderModal').modal('show');
   }
+
+  // ✅ Custom Function to Upload a file
+  function uploadFile() {
+    $('#fileForm')[0].reset();
+    $('#fileModal').modal('show');
+  }
+
+    // Handle file creation
+    $('#fileForm').on('submit', function (e) {
+      e.preventDefault();
+  
+      const currentDir = fileManager.getCurrentDirectory();
+      const parentId = currentDir.dataItem?.id || "";
+  
+      let formData = new FormData(this);
+      formData.append("folder_id", parentId); // Append parent_id
+  
+      $.ajax({
+        url: createFileRoute, // Ensure this route is correctly defined
+        type: "POST",
+        data: formData,
+        headers: {
+          "X-CSRF-TOKEN": csrfToken // ✅ CSRF token included
+        },
+        processData: false,  // ✅ Prevent jQuery from processing data
+        contentType: false,  // ✅ Prevent jQuery from setting Content-Type
+        success: function (response) {
+          if (response.success) {
+            $('#fileModal').modal('hide'); // Close modal
+            fetchFileManagerData(); // Refresh file manager
+          } else {
+            alert(response.message); // Show error message
+          }
+        },
+        error: function (xhr, status, error) {
+          console.error("Error:", error); // Log error response
+          alert("An unexpected error occurred. Please try again.");
+        }
+      });
+    });
 
 
   // Handle folder creation

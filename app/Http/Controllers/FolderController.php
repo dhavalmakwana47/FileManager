@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Folder\FolderRequest;
 use App\Models\CompanyRole;
+use App\Models\File;
 use App\Models\Folder;
 use App\Models\RoleFolderPermission;
 use Illuminate\Http\Request;
@@ -27,7 +28,7 @@ class FolderController extends Controller implements HasMiddleware
      */
     public function index()
     {
-        return view('app.folder.index2', [
+        return view('app.folder.index', [
             'title' => "Add Folder",
             'assignedPermissions' => [],
             'folderArr' => Folder::where('company_id', get_active_company())->whereNull('parent_id')->get(),
@@ -116,7 +117,28 @@ class FolderController extends Controller implements HasMiddleware
             ->with(['subfolders', 'files'])
             ->get();
 
-        return response()->json($this->buildFileTree($folders, $defaultAccess));
+        // Fetch root-level files (files without a folder)
+        $files = File::where('company_id', get_active_company())
+            ->whereNull('folder_id')
+            ->get();
+
+        // Build hierarchical structure
+        $fileTree = $this->buildFileTree($folders, $defaultAccess);
+
+        // Merge root-level files into the structured tree
+        foreach ($files as $file) {
+            if($file->hasAccess() ){
+            $fileTree[] = [
+                'id' => $file->id,
+                'parentId' =>null,
+                'name' => $file->name,
+                'isDirectory' => false,
+                'permissions' => $this->formatPermissions($file, $defaultAccess, false),
+            ];
+        }
+        }
+
+        return response()->json($fileTree);
     }
 
     /**
@@ -158,7 +180,7 @@ class FolderController extends Controller implements HasMiddleware
                 'id' => $file->id,
                 'name' => $file->name,
                 'isDirectory' => false,
-                'permissions' => $this->formatPermissions($file, $defaultAccess),
+                'permissions' => $this->formatPermissions($file, $defaultAccess, false),
             ])
             ->values()
             ->all();
@@ -167,14 +189,22 @@ class FolderController extends Controller implements HasMiddleware
     /**
      * Format permissions with default values.
      */
-    private function formatPermissions($model, $defaultAccess)
+    private function formatPermissions($model, $defaultAccess, $isFolder = true)
     {
         $permissions = $model->getPermissions();
-        return [
-            'create' => $permissions->can_create ?? $defaultAccess,
-            'update' => $permissions->can_update ?? $defaultAccess,
-            'delete' => $permissions->can_delete ?? $defaultAccess,
-        ];
+        if ($isFolder) {
+            return [
+                'create' => $permissions->can_create ?? $defaultAccess,
+                'update' => $permissions->can_update ?? $defaultAccess,
+                'delete' => $permissions->can_delete ?? $defaultAccess,
+            ];
+        } else {
+            return [
+                'download' => $permissions->can_download ?? $defaultAccess,
+                'update' => $permissions->can_update ?? $defaultAccess,
+                'delete' => $permissions->can_delete ?? $defaultAccess,
+            ];
+        }
     }
 
     /**
@@ -218,22 +248,5 @@ class FolderController extends Controller implements HasMiddleware
         if (!empty($rolePermissions)) {
             RoleFolderPermission::insert($rolePermissions);
         }
-    }
-
-    /**
-     * Standardized success response.
-     */
-    private function successResponse($message, $data = null)
-    {
-        return response()->json(['success' => true, 'message' => $message, 'data' => $data]);
-    }
-
-    /**
-     * Standardized error response.
-     */
-    private function errorResponse($message, $code = 500, $exception = null)
-    {
-        \Log::error($message . ($exception ? ' - ' . $exception->getMessage() : ''));
-        return response()->json(['success' => false, 'message' => $message], $code);
     }
 }

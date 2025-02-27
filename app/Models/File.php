@@ -11,6 +11,7 @@ class File extends Model
     protected $fillable = [
         'name',
         'folder_id',
+        'company_id',
         'created_by',
         'updated_by'
     ];
@@ -34,6 +35,6 @@ class File extends Model
     {
         return $this->rolePermissions()
             ->whereIn('company_role_id', current_user()->companyRoles->pluck('id'))
-            ->first(['can_create', 'can_update', 'can_delete']);
+            ->first(['can_download', 'can_update', 'can_delete']);
     }
 }
