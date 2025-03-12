@@ -112,7 +112,7 @@ class FolderController extends Controller implements HasMiddleware
     {
         $defaultAccess = current_user()->is_master_admin() || current_user()->is_super_admin();
 
-        $folders = Folder::where('company_id', get_active_company())
+        $folders = Folder::with('files', 'subfolders')->where('company_id', get_active_company())
             ->whereNull('parent_id')
             ->with(['subfolders', 'files'])
             ->get();
@@ -127,15 +127,15 @@ class FolderController extends Controller implements HasMiddleware
 
         // Merge root-level files into the structured tree
         foreach ($files as $file) {
-            if($file->hasAccess() ){
-            $fileTree[] = [
-                'id' => $file->id,
-                'parentId' =>null,
-                'name' => $file->name,
-                'isDirectory' => false,
-                'permissions' => $this->formatPermissions($file, $defaultAccess, false),
-            ];
-        }
+            if ($file->hasAccess()) {
+                $fileTree[] = [
+                    'id' => $file->id,
+                    'parentId' => null,
+                    'name' => $file->name,
+                    'isDirectory' => false,
+                    'permissions' => $this->formatPermissions($file, $defaultAccess, false),
+                ];
+            }
         }
 
         return response()->json($fileTree);
@@ -146,7 +146,7 @@ class FolderController extends Controller implements HasMiddleware
      */
     private function buildFileTree($folders, $defaultAccess)
     {
-        return $folders->filter(fn($folder) => $folder->has_access() || $this->hasChildAccess($folder))
+        return $folders->filter(fn($folder) => $folder->has_access() || $this->hasChildAccess($folder) ||  $folder->files->some(fn($file) => $file->hasAccess()))
             ->map(fn($folder) => [
                 'id' => $folder->id,
                 'parentId' => $folder->parent_id,
@@ -167,7 +167,7 @@ class FolderController extends Controller implements HasMiddleware
      */
     private function hasChildAccess($folder)
     {
-        return $folder->subfolders->contains(fn($sub) => $sub->has_access() || $this->hasChildAccess($sub));
+        return $folder->subfolders->contains(fn($sub) => $sub->has_access() || $this->hasChildAccess($sub) ||  $sub->files->some(fn($file) => $file->hasAccess()));
     }
 
     /**

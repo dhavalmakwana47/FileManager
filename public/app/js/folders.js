@@ -288,10 +288,6 @@ $(function () {
     });
   });
 
-
-
-
-
   // Initialize File Manager Data
   fetchFileManagerData();
 });

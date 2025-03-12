@@ -88,7 +88,6 @@
         let deleteFolderRoute = "{{ route('folders.delete') }}";
         let createFileRoute = "{{ route('file.store') }}";
 
-
         let createFolderPermission = "{{ current_user()->hasPermission('Folder', 'create') }}"
         let deleteFolderPermission = "{{ current_user()->hasPermission('Folder', 'delete') }}"
         let updateFolderPermission = "{{ current_user()->hasPermission('Folder', 'update') }}"
